@@ -1,0 +1,571 @@
+﻿<Window x:Class="CheckPrintApp.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CheckPrintApp.UI"
+        xmlns:converters="clr-namespace:CheckPrintApp.UI.Converters"
+        mc:Ignorable="d"
+        Title="ATCE Çek Yazdırma 💳" Height="850" Width="1250"
+        WindowStartupLocation="CenterScreen"
+        Background="#F5F5F5">
+    
+    <!-- Resources -->
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:CalibratedPositionConverter x:Key="CalibratedPositionConverter"/>
+        
+        <!-- Modern Button Style -->
+        <Style x:Key="ModernButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#2196F3"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="5"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1976D2"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="#CCCCCC"/>
+                    <Setter Property="Cursor" Value="No"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Print Button Style -->
+        <Style x:Key="PrintButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+            <Setter Property="Background" Value="#4CAF50"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Padding" Value="25,12"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#388E3C"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- GroupBox Style -->
+        <Style TargetType="GroupBox">
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Padding" Value="15"/>
+            <Setter Property="Margin" Value="0,0,0,15"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GroupBox">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="8">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <Border Grid.Row="0" 
+                                            Background="#2196F3" 
+                                            CornerRadius="8,8,0,0" 
+                                            Padding="12,8">
+                                        <ContentPresenter ContentSource="Header" 
+                                                          TextElement.Foreground="White"
+                                                          TextElement.FontWeight="Bold"
+                                                          TextElement.FontSize="14"/>
+                                    </Border>
+                                    <ContentPresenter Grid.Row="1" Margin="{TemplateBinding Padding}"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- TextBox Style -->
+        <Style TargetType="TextBox">
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="BorderBrush" Value="#BDBDBD"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Style.Triggers>
+                <Trigger Property="IsFocused" Value="True">
+                    <Setter Property="BorderBrush" Value="#2196F3"/>
+                    <Setter Property="BorderThickness" Value="2"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+    
+    <Grid Margin="15">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="420"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Sol Panel: Veri Girişi ve Ayarlar -->
+        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,15,0">
+            <StackPanel>
+                
+                <!-- Çek Bilgileri -->
+                <GroupBox Header="📝 ÇEK BİLGİLERİ">
+                    <StackPanel>
+                        <!-- Tarih -->
+                        <Label Content="📅 Tarih:" FontWeight="SemiBold" Foreground="#424242"/>
+                        <DatePicker SelectedDate="{Binding CheckDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Margin="0,0,0,12"
+                                    Height="32"/>
+
+                        <!-- Kime (Alacaklı) -->
+                        <Label Content="👤 Alacaklı (Kime/Emrine):" FontWeight="SemiBold" Foreground="#424242"/>
+                        <TextBox Text="{Binding PayeeName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 MaxLength="100"
+                                 Height="34"
+                                 VerticalContentAlignment="Center"
+                                 Margin="0,0,0,12"
+                                 ToolTip="Çek alacaklısının tam adı"/>
+
+                        <!-- Tutar -->
+                        <Label Content="💰 Tutar (TL):" FontWeight="SemiBold" Foreground="#424242"/>
+                        <TextBox Text="{Binding Amount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 Height="34"
+                                 VerticalContentAlignment="Center"
+                                 Margin="0,0,0,12"
+                                 ToolTip="Örnek: 1250,50"/>
+
+                        <!-- Yazıyla Tutar (Readonly) -->
+                        <Label Content="✍ Yazıyla:" FontWeight="SemiBold" Foreground="#424242"/>
+                        <TextBox Text="{Binding AmountInWords, Mode=OneWay}"
+                                 IsReadOnly="True"
+                                 TextWrapping="Wrap"
+                                 Background="#E3F2FD"
+                                 BorderBrush="#2196F3"
+                                 MinHeight="65"
+                                 FontWeight="Medium"
+                                 Foreground="#1565C0"
+                                 Margin="0,0,0,12"/>
+
+                        <!-- Keşide Yeri -->
+                        <Label Content="📍 Keşide Yeri:" FontWeight="SemiBold" Foreground="#424242"/>
+                        <TextBox Text="{Binding Location, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 MaxLength="50"
+                                 Height="34"
+                                 VerticalContentAlignment="Center"
+                                 ToolTip="Çekin düzenlendiği şehir"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Kalibrasyon Ayarları -->
+                <GroupBox Header="⚙ KALİBRASYON AYARLARI (BANKA FORMATINA GÖRE)">
+                    <StackPanel>
+                        <TextBlock Text="Her alanı ayrı ayrı ayarlayarak çeki bankanızın formatına uygun hale getirin" 
+                                   FontSize="10" 
+                                   Foreground="#757575" 
+                                   FontStyle="Italic"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,10"/>
+                        
+                        <!-- TARİH ALANI -->
+                        <Expander Header="📅 TARİH ALANI" IsExpanded="True" Margin="0,0,0,8">
+                            <StackPanel Margin="10,5,0,0">
+                                <Label Margin="0,0,0,3">
+                                    <TextBlock>
+                                        <Run Text="↔ Sol/Sağ: " FontWeight="SemiBold" FontSize="11"/>
+                                        <Run Text="{Binding DateOffsetXText, Mode=OneWay}" 
+                                             Foreground="White" Background="#2196F3" FontWeight="Bold" FontSize="11"/>
+                                    </TextBlock>
+                                </Label>
+                                <Slider Value="{Binding DateOffsetX, Mode=TwoWay}"
+                                        Minimum="-50" Maximum="50" TickFrequency="0.5"
+                                        IsSnapToTickEnabled="True" Height="25" Foreground="#2196F3" Margin="0,0,0,8"/>
+                                
+                                <Label Margin="0,0,0,3">
+                                    <TextBlock>
+                                        <Run Text="↕ Yukarı/Aşağı: " FontWeight="SemiBold" FontSize="11"/>
+                                        <Run Text="{Binding DateOffsetYText, Mode=OneWay}" 
+                                             Foreground="White" Background="#FF5722" FontWeight="Bold" FontSize="11"/>
+                                    </TextBlock>
+                                </Label>
+                                <Slider Value="{Binding DateOffsetY, Mode=TwoWay}"
+                                        Minimum="-50" Maximum="50" TickFrequency="0.5"
+                                        IsSnapToTickEnabled="True" Height="25" Foreground="#FF5722"/>
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- ALACAKLI ALANI -->
+                        <Expander Header="👤 ALACAKLI ALANI" Margin="0,0,0,8">
+                            <StackPanel Margin="10,5,0,0">
+                                <Label Margin="0,0,0,3">
+                                    <TextBlock>
+                                        <Run Text="↔ Sol/Sağ: " FontWeight="SemiBold" FontSize="11"/>
+                                        <Run Text="{Binding PayeeOffsetXText, Mode=OneWay}" 
+                                             Foreground="White" Background="#2196F3" FontWeight="Bold" FontSize="11"/>
+                                    </TextBlock>
+                                </Label>
+                                <Slider Value="{Binding PayeeOffsetX, Mode=TwoWay}"
+                                        Minimum="-50" Maximum="50" TickFrequency="0.5"
+                                        IsSnapToTickEnabled="True" Height="25" Foreground="#2196F3" Margin="0,0,0,8"/>
+                                
+                                <Label Margin="0,0,0,3">
+                                    <TextBlock>
+                                        <Run Text="↕ Yukarı/Aşağı: " FontWeight="SemiBold" FontSize="11"/>
+                                        <Run Text="{Binding PayeeOffsetYText, Mode=OneWay}" 
+                                             Foreground="White" Background="#FF5722" FontWeight="Bold" FontSize="11"/>
+                                    </TextBlock>
+                                </Label>
+                                <Slider Value="{Binding PayeeOffsetY, Mode=TwoWay}"
+                                        Minimum="-50" Maximum="50" TickFrequency="0.5"
+                                        IsSnapToTickEnabled="True" Height="25" Foreground="#FF5722"/>
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- TUTAR ALANI -->
+                        <Expander Header="💰 TUTAR ALANI (RAKAMLA)" Margin="0,0,0,8">
+                            <StackPanel Margin="10,5,0,0">
+                                <Label Margin="0,0,0,3">
+                                    <TextBlock>
+                                        <Run Text="↔ Sol/Sağ: " FontWeight="SemiBold" FontSize="11"/>
+                                        <Run Text="{Binding AmountOffsetXText, Mode=OneWay}" 
+                                             Foreground="White" Background="#2196F3" FontWeight="Bold" FontSize="11"/>
+                                    </TextBlock>
+                                </Label>
+                                <Slider Value="{Binding AmountOffsetX, Mode=TwoWay}"
+                                        Minimum="-50" Maximum="50" TickFrequency="0.5"
+                                        IsSnapToTickEnabled="True" Height="25" Foreground="#2196F3" Margin="0,0,0,8"/>
+                                
+                                <Label Margin="0,0,0,3">
+                                    <TextBlock>
+                                        <Run Text="↕ Yukarı/Aşağı: " FontWeight="SemiBold" FontSize="11"/>
+                                        <Run Text="{Binding AmountOffsetYText, Mode=OneWay}" 
+                                             Foreground="White" Background="#FF5722" FontWeight="Bold" FontSize="11"/>
+                                    </TextBlock>
+                                </Label>
+                                <Slider Value="{Binding AmountOffsetY, Mode=TwoWay}"
+                                        Minimum="-50" Maximum="50" TickFrequency="0.5"
+                                        IsSnapToTickEnabled="True" Height="25" Foreground="#FF5722"/>
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- YAZILI TUTAR ALANI -->
+                        <Expander Header="✍ YAZILI TUTAR ALANI" Margin="0,0,0,8">
+                            <StackPanel Margin="10,5,0,0">
+                                <Label Margin="0,0,0,3">
+                                    <TextBlock>
+                                        <Run Text="↔ Sol/Sağ: " FontWeight="SemiBold" FontSize="11"/>
+                                        <Run Text="{Binding AmountInWordsOffsetXText, Mode=OneWay}" 
+                                             Foreground="White" Background="#2196F3" FontWeight="Bold" FontSize="11"/>
+                                    </TextBlock>
+                                </Label>
+                                <Slider Value="{Binding AmountInWordsOffsetX, Mode=TwoWay}"
+                                        Minimum="-50" Maximum="50" TickFrequency="0.5"
+                                        IsSnapToTickEnabled="True" Height="25" Foreground="#2196F3" Margin="0,0,0,8"/>
+                                
+                                <Label Margin="0,0,0,3">
+                                    <TextBlock>
+                                        <Run Text="↕ Yukarı/Aşağı: " FontWeight="SemiBold" FontSize="11"/>
+                                        <Run Text="{Binding AmountInWordsOffsetYText, Mode=OneWay}" 
+                                             Foreground="White" Background="#FF5722" FontWeight="Bold" FontSize="11"/>
+                                    </TextBlock>
+                                </Label>
+                                <Slider Value="{Binding AmountInWordsOffsetY, Mode=TwoWay}"
+                                        Minimum="-50" Maximum="50" TickFrequency="0.5"
+                                        IsSnapToTickEnabled="True" Height="25" Foreground="#FF5722"/>
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- KEŞİDE YERİ ALANI -->
+                        <Expander Header="📍 KEŞİDE YERİ ALANI" Margin="0,0,0,8">
+                            <StackPanel Margin="10,5,0,0">
+                                <Label Margin="0,0,0,3">
+                                    <TextBlock>
+                                        <Run Text="↔ Sol/Sağ: " FontWeight="SemiBold" FontSize="11"/>
+                                        <Run Text="{Binding LocationOffsetXText, Mode=OneWay}" 
+                                             Foreground="White" Background="#2196F3" FontWeight="Bold" FontSize="11"/>
+                                    </TextBlock>
+                                </Label>
+                                <Slider Value="{Binding LocationOffsetX, Mode=TwoWay}"
+                                        Minimum="-50" Maximum="50" TickFrequency="0.5"
+                                        IsSnapToTickEnabled="True" Height="25" Foreground="#2196F3" Margin="0,0,0,8"/>
+                                
+                                <Label Margin="0,0,0,3">
+                                    <TextBlock>
+                                        <Run Text="↕ Yukarı/Aşağı: " FontWeight="SemiBold" FontSize="11"/>
+                                        <Run Text="{Binding LocationOffsetYText, Mode=OneWay}" 
+                                             Foreground="White" Background="#FF5722" FontWeight="Bold" FontSize="11"/>
+                                    </TextBlock>
+                                </Label>
+                                <Slider Value="{Binding LocationOffsetY, Mode=TwoWay}"
+                                        Minimum="-50" Maximum="50" TickFrequency="0.5"
+                                        IsSnapToTickEnabled="True" Height="25" Foreground="#FF5722"/>
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- Test Baskısı Checkbox -->
+                        <Border Background="#FFF3E0" 
+                                BorderBrush="#FF9800" 
+                                BorderThickness="1" 
+                                CornerRadius="5" 
+                                Padding="10"
+                                Margin="0,10,0,15">
+                            <CheckBox Content="🔲 Test Baskısı (Sadece Kılavuz Çerçeveleri)" 
+                                      IsChecked="{Binding IsTestPrint, Mode=TwoWay}"
+                                      FontWeight="Medium"
+                                      Foreground="#E65100"
+                                      ToolTip="Boş kağıda test baskısı yapar, hizalama kontrolü için kullanın"/>
+                        </Border>
+
+                        <!-- Kalibrasyon Butonları -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0"
+                                    Content="🔄 Sıfırla" 
+                                    Command="{Binding ResetCalibrationCommand}"
+                                    Style="{StaticResource ModernButtonStyle}"
+                                    Background="#9E9E9E"
+                                    Margin="0,0,5,0"
+                                    ToolTip="Tüm kalibrasyon ayarlarını sıfırla"/>
+                            <Button Grid.Column="1"
+                                    Content="💾 Kaydet" 
+                                    Command="{Binding SaveSettingsCommand}"
+                                    Style="{StaticResource ModernButtonStyle}"
+                                    Margin="5,0,0,0"
+                                    ToolTip="Ayarları kalıcı olarak kaydet"/>
+                        </Grid>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Validasyon Hata Mesajı -->
+                <Border Background="#FFEBEE" 
+                        BorderBrush="#F44336" 
+                        BorderThickness="2"
+                        CornerRadius="8"
+                        Padding="12"
+                        Margin="0,0,0,15"
+                        Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="⚠" FontSize="20" Foreground="#F44336" Margin="0,0,10,0"/>
+                        <TextBlock Text="{Binding ValidationError}" 
+                                   Foreground="#C62828" 
+                                   FontWeight="Medium"
+                                   TextWrapping="Wrap"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Yazdır Butonu -->
+                <Button Content="🖨 ÇEK YAZDIR" 
+                        Command="{Binding PrintCommand}"
+                        Style="{StaticResource PrintButtonStyle}"
+                        Height="50"
+                        ToolTip="Çeki yazıcıdan yazdır"/>
+                
+                <!-- Created By -->
+                <Border Background="#E3F2FD" 
+                        BorderBrush="#2196F3" 
+                        BorderThickness="1"
+                        CornerRadius="5"
+                        Padding="10"
+                        Margin="0,20,0,0">
+                    <TextBlock FontSize="10" 
+                               Foreground="#1565C0" 
+                               TextAlignment="Center"
+                               FontStyle="Italic">
+                        <Run Text="Created by "/>
+                        <Run Text="Veysel Kılıçerkan" FontWeight="Bold"/>
+                    </TextBlock>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Sağ Panel: Canlı Önizleme -->
+        <Border Grid.Column="1" 
+                BorderBrush="#2196F3" 
+                BorderThickness="2" 
+                CornerRadius="10"
+                Background="White"
+                Padding="20">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Önizleme Başlığı -->
+                <Border Grid.Row="0" 
+                        Background="#2196F3" 
+                        CornerRadius="5"
+                        Padding="12"
+                        Margin="0,0,0,15">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <TextBlock Text="👁" FontSize="22" Margin="0,0,10,0"/>
+                        <TextBlock Text="CANLI ÇEK ÖNİZLEMESİ" 
+                                   FontSize="16" 
+                                   FontWeight="Bold"
+                                   Foreground="White"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Çek Önizleme Alanı -->
+                <Border Grid.Row="1"
+                        BorderBrush="#424242"
+                        BorderThickness="3"
+                        Background="#FAFAFA"
+                        CornerRadius="8"
+                        Padding="30">
+                    <Viewbox Stretch="Uniform">
+                        <Canvas Width="600" Height="260" Background="White" ClipToBounds="False">
+                            <!-- Çek Çerçevesi -->
+                            <Rectangle Canvas.Left="0" Canvas.Top="0" 
+                                       Width="600" Height="260"
+                                       Stroke="#1565C0" StrokeThickness="4"
+                                       Fill="White"/>
+                            
+                            <!-- Üst Bölüm Arka Plan -->
+                            <Rectangle Canvas.Left="0" Canvas.Top="0" 
+                                       Width="600" Height="75"
+                                       Fill="#F5F5F5"/>
+                            
+                            <!-- Üst Ayırıcı Çizgi -->
+                            <Line X1="0" Y1="75" X2="600" Y2="75" 
+                                  Stroke="#2196F3" StrokeThickness="2"/>
+
+                            <!-- Keşide Yeri - DİNAMİK -->
+                            <StackPanel Canvas.Left="150" Canvas.Top="30" Orientation="Horizontal">
+                                <StackPanel.RenderTransform>
+                                    <TranslateTransform X="{Binding LocationOffsetXPreview}" Y="{Binding LocationOffsetYPreview}"/>
+                                </StackPanel.RenderTransform>
+                                <TextBlock Text="📍 " FontSize="13" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Location, Mode=OneWay}" 
+                                           FontSize="12" 
+                                           FontWeight="ExtraBold" 
+                                           Foreground="#2196F3"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Tarih - DİNAMİK -->
+                            <StackPanel Canvas.Left="360" Canvas.Top="30" Orientation="Horizontal">
+                                <StackPanel.RenderTransform>
+                                    <TranslateTransform X="{Binding DateOffsetXPreview}" Y="{Binding DateOffsetYPreview}"/>
+                                </StackPanel.RenderTransform>
+                                <TextBlock Text="📅 " FontSize="13" VerticalAlignment="Center"/>
+                                <TextBlock FontSize="12" FontWeight="Bold" VerticalAlignment="Center">
+                                    <Run Text="{Binding FormattedDate, Mode=OneWay}" Foreground="#FF5722" FontWeight="ExtraBold"/>
+                                </TextBlock>
+                            </StackPanel>
+
+                            <!-- "ÖDEME EMRİ" Başlık -->
+                            <TextBlock Text="ÖDEME EMRİ" 
+                                       Canvas.Left="20" Canvas.Top="90"
+                                       FontSize="10" 
+                                       FontWeight="SemiBold"
+                                       Foreground="#9E9E9E"/>
+
+                            <!-- Alacaklı Alanı - DİNAMİK -->
+                            <Border Canvas.Left="60" Canvas.Top="105"
+                                    BorderBrush="#BDBDBD" 
+                                    BorderThickness="0,0,0,1"
+                                    Width="350"
+                                    Padding="5,2">
+                                <Border.RenderTransform>
+                                    <TranslateTransform X="{Binding PayeeOffsetXPreview}" Y="{Binding PayeeOffsetYPreview}"/>
+                                </Border.RenderTransform>
+                                <TextBlock Text="{Binding PayeeName, Mode=OneWay}" 
+                                           FontSize="15"
+                                           FontWeight="Bold"
+                                           Foreground="#1565C0"/>
+                            </Border>
+
+                            <!-- Tutar Kutusu (Sağda) - DİNAMİK -->
+                            <Border Canvas.Left="360" Canvas.Top="105"
+                                    Background="#E8F5E9" 
+                                    BorderBrush="#4CAF50" 
+                                    BorderThickness="2"
+                                    CornerRadius="5"
+                                    Padding="12,8">
+                                <Border.RenderTransform>
+                                    <TranslateTransform X="{Binding AmountOffsetXPreview}" Y="{Binding AmountOffsetYPreview}"/>
+                                </Border.RenderTransform>
+                                <TextBlock Text="{Binding FormattedAmount, Mode=OneWay}" 
+                                           FontSize="16"
+                                           FontWeight="ExtraBold"
+                                           Foreground="#2E7D32"
+                                           FontFamily="Courier New"/>
+                            </Border>
+
+                            <!-- Yazıyla Tutar - DİNAMİK -->
+                            <Border Canvas.Left="60" Canvas.Top="150"
+                                    BorderBrush="#BDBDBD" 
+                                    BorderThickness="0,0,0,1"
+                                    Width="540"
+                                    Padding="5,3">
+                                <Border.RenderTransform>
+                                    <TranslateTransform X="{Binding AmountInWordsOffsetXPreview}" Y="{Binding AmountInWordsOffsetYPreview}"/>
+                                </Border.RenderTransform>
+                                <TextBlock Text="{Binding AmountInWords, Mode=OneWay}" 
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="#424242"
+                                           TextWrapping="Wrap"/>
+                            </Border>
+
+                            <!-- Alt Bilgi -->
+                            <TextBlock Text="* Slider'ları hareket ettirin, önizlemede anında değişiklikleri görün!" 
+                                       Canvas.Left="30" Canvas.Top="235"
+                                       FontSize="9"
+                                       Foreground="#4CAF50"
+                                       FontWeight="Bold"
+                                       FontStyle="Italic"/>
+                        </Canvas>
+                    </Viewbox>
+                </Border>
+
+                <!-- Alt Bilgilendirme -->
+                <Border Grid.Row="2"
+                        Background="#E3F2FD"
+                        BorderBrush="#2196F3"
+                        BorderThickness="1"
+                        CornerRadius="5"
+                        Padding="10"
+                        Margin="0,15,0,0">
+                    <StackPanel>
+                        <TextBlock FontSize="11" Foreground="#1565C0" FontWeight="SemiBold" Margin="0,0,0,5">
+                            <Run Text="💡"/>
+                            <Run Text=" İPUÇLARI:"/>
+                        </TextBlock>
+                        <TextBlock Text="• Slider'ları hareket ettirerek önizlemede değişiklikleri görebilirsiniz" 
+                                   FontSize="10" 
+                                   Foreground="#424242"
+                                   Margin="0,2"/>
+                        <TextBlock Text="• Test baskısı yaparak gerçek çek ile hizalamayı kontrol edin" 
+                                   FontSize="10" 
+                                   Foreground="#424242"
+                                   Margin="0,2"/>
+                        <TextBlock Text="• Ayarlarınızı kaydetmeyi unutmayın!" 
+                                   FontSize="10" 
+                                   Foreground="#424242"
+                                   FontWeight="SemiBold"
+                                   Margin="0,2"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
