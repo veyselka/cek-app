@@ -11,6 +11,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Markup;
 using System.Windows.Media;
+using Serilog;
 
 namespace CheckPrintApp.UI.Services;
 
@@ -48,6 +49,7 @@ public class PrinterService : IPrinterService
         {
             try
             {
+                Log.Information("PrintCheckAsync başlatıldı. Test modu: {IsTestPrint}", isTestPrint);
                 bool result = false;
 
                 // UI thread'de çalıştırılmalı
@@ -69,17 +71,27 @@ public class PrinterService : IPrinterService
                         // Kullanıcıya yazıcı seçme dialogu göster
                         if (printDialog.ShowDialog() == true)
                         {
+                            Log.Information("Yazdırma dialogu onaylandı. Yazıcı: {PrinterName}", printDialog.PrintQueue?.FullName);
                             // Yazdır
                             printDialog.PrintDocument(document.DocumentPaginator, "Çek Yazdırma");
                             result = true;
                         }
+                        else
+                        {
+                            Log.Information("Kullanıcı yazdırma dialogunu iptal etti");
+                        }
+                    }
+                    else
+                    {
+                        Log.Information("Kullanıcı önizleme penceresini kapattı");
                     }
                 });
 
                 return result;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Log.Error(ex, "PrintCheckAsync sırasında hata oluştu");
                 return false;
             }
         });

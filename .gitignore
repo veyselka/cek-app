@@ -25,11 +25,15 @@ bld/
 *.userosscache
 *.sln.docstates
 
-# Publish folders
+# Publish folders (temporary builds)
 publish/
 publish-final/
 publish-latest/
 publish-standalone/
+publish-standalone-final/
+
+# Release folders (exe files are too large for GitHub)
+release-v*/
 
 # NuGet Packages
 *.nupkg

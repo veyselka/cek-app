@@ -334,12 +334,12 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Button Grid.Column="0"
-                                    Content="🔄 Sıfırla" 
-                                    Command="{Binding ResetCalibrationCommand}"
+                                    Content="⚙️ Ayarlar" 
+                                    Click="SettingsButton_Click"
                                     Style="{StaticResource ModernButtonStyle}"
-                                    Background="#9E9E9E"
+                                    Background="#FF9800"
                                     Margin="0,0,5,0"
-                                    ToolTip="Tüm kalibrasyon ayarlarını sıfırla"/>
+                                    ToolTip="Kalibrasyon ve ayarlar penceresini aç"/>
                             <Button Grid.Column="1"
                                     Content="💾 Kaydet" 
                                     Command="{Binding SaveSettingsCommand}"

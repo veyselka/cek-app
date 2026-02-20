@@ -5,6 +5,7 @@ using CheckPrintApp.UI.Helpers;
 using System;
 using System.Windows;
 using System.Windows.Input;
+using Serilog;
 
 namespace CheckPrintApp.UI.ViewModels;
 
@@ -521,10 +522,13 @@ public class MainViewModel : ViewModelBase
     {
         try
         {
+            Log.Information("Yazdırma işlemi başlatılıyor. Alıcı: {PayeeName}, Tutar: {Amount}", PayeeName, Amount);
+            
             bool success = await _printerService.PrintCheckAsync(CheckModel, CalibrationConfig, IsTestPrint);
 
             if (success)
             {
+                Log.Information("Çek başarıyla yazdırıldı");
                 MessageBox.Show("Çek başarıyla yazdırıldı!", "Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // Son kullanılan bilgileri kaydet
@@ -532,11 +536,13 @@ public class MainViewModel : ViewModelBase
             }
             else
             {
+                Log.Warning("Çek yazdırılamadı - Yazıcı bağlantı hatası");
                 MessageBox.Show("Çek yazdırılamadı. Lütfen yazıcı bağlantınızı kontrol edin.", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         catch (Exception ex)
         {
+            Log.Error(ex, "Yazdırma hatası oluştu");
             MessageBox.Show($"Yazdırma hatası: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -556,6 +562,8 @@ public class MainViewModel : ViewModelBase
     {
         try
         {
+            Log.Information("Ayarlar kaydediliyor...");
+            
             var settings = new AppSettings
             {
                 Version = "1.0.0",
@@ -570,10 +578,12 @@ public class MainViewModel : ViewModelBase
             };
 
             await _settingsService.SaveSettingsAsync(settings);
+            Log.Information("Ayarlar başarıyla kaydedildi");
             MessageBox.Show("Ayarlar başarıyla kaydedildi!", "Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
         {
+            Log.Error(ex, "Ayarlar kaydedilirken hata oluştu");
             MessageBox.Show($"Ayarlar kaydedilirken hata oluştu: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -631,6 +641,26 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(LocationOffsetYPreview));
         
         MessageBox.Show("Tüm kalibrasyon ayarları varsayılan değerlere döndürüldü.", "Bilgi", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    /// <summary>
+    /// Kalibrasyon değişikliklerini bildirir (UI güncellemesi için)
+    /// </summary>
+    public void NotifyCalibrationChanged()
+    {
+        // Tüm kalibrasyon property'lerini güncelle
+        OnPropertyChanged(nameof(DateOffsetX));
+        OnPropertyChanged(nameof(DateOffsetY));
+        OnPropertyChanged(nameof(PayeeOffsetX));
+        OnPropertyChanged(nameof(PayeeOffsetY));
+        OnPropertyChanged(nameof(AmountOffsetX));
+        OnPropertyChanged(nameof(AmountOffsetY));
+        OnPropertyChanged(nameof(AmountInWordsOffsetX));
+        OnPropertyChanged(nameof(AmountInWordsOffsetY));
+        OnPropertyChanged(nameof(LocationOffsetX));
+        OnPropertyChanged(nameof(LocationOffsetY));
+        
+        Log.Information("Kalibrasyon değişiklikleri UI'a bildirildi");
     }
 
     #endregion

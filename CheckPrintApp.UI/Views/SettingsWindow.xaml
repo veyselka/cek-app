@@ -1,0 +1,210 @@
+<Window x:Class="CheckPrintApp.UI.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Ayarlar ve Kalibrasyon" 
+        Height="600" 
+        Width="700"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F5F5F5">
+
+    <Window.Resources>
+        <!-- Stil tanımlamaları -->
+        <Style x:Key="GroupBoxStyle" TargetType="GroupBox">
+            <Setter Property="Margin" Value="10"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#CCCCCC"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,5"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="SliderStyle" TargetType="Slider">
+            <Setter Property="Minimum" Value="-50"/>
+            <Setter Property="Maximum" Value="50"/>
+            <Setter Property="TickFrequency" Value="0.5"/>
+            <Setter Property="IsSnapToTickEnabled" Value="True"/>
+            <Setter Property="AutoToolTipPlacement" Value="TopLeft"/>
+            <Setter Property="AutoToolTipPrecision" Value="1"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                
+                <!-- Genel Ayarlar -->
+                <GroupBox Header="⚙️ Genel Ayarlar" Style="{StaticResource GroupBoxStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Font Ailesi:" Style="{StaticResource LabelStyle}"/>
+                        <ComboBox Grid.Row="0" Grid.Column="1" x:Name="FontFamilyComboBox" Height="30" VerticalContentAlignment="Center">
+                            <ComboBoxItem Content="Arial" IsSelected="True"/>
+                            <ComboBoxItem Content="Times New Roman"/>
+                            <ComboBoxItem Content="Courier New"/>
+                            <ComboBoxItem Content="Calibri"/>
+                        </ComboBox>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Font Boyutu:" Style="{StaticResource LabelStyle}"/>
+                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
+                            <Slider x:Name="FontSizeSlider" Width="200" Minimum="8" Maximum="16" Value="10" 
+                                    TickFrequency="0.5" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding ElementName=FontSizeSlider, Path=Value, StringFormat={}{0:F1} pt}" 
+                                       Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="Bold"/>
+                        </StackPanel>
+
+                        <CheckBox Grid.Row="2" Grid.Column="1" x:Name="AutoUpperCaseCheckBox" 
+                                  Content="Otomatik büyük harf" VerticalAlignment="Center" Margin="0,5"/>
+                    </Grid>
+                </GroupBox>
+
+                <!-- Tarih Kalibrasyon -->
+                <GroupBox Header="📅 Tarih Konumu" Style="{StaticResource GroupBoxStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="X Kaydırma (mm):" Style="{StaticResource LabelStyle}"/>
+                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
+                            <Slider x:Name="DateXOffsetSlider" Width="300" Style="{StaticResource SliderStyle}" Value="0"/>
+                            <TextBlock Text="{Binding ElementName=DateXOffsetSlider, Path=Value, StringFormat={}{0:+0.0;-0.0;0.0} mm}" 
+                                       Width="60" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="Bold"/>
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Y Kaydırma (mm):" Style="{StaticResource LabelStyle}"/>
+                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
+                            <Slider x:Name="DateYOffsetSlider" Width="300" Style="{StaticResource SliderStyle}" Value="0"/>
+                            <TextBlock Text="{Binding ElementName=DateYOffsetSlider, Path=Value, StringFormat={}{0:+0.0;-0.0;0.0} mm}" 
+                                       Width="60" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Grid>
+                </GroupBox>
+
+                <!-- Alıcı Kalibrasyon -->
+                <GroupBox Header="👤 Alıcı Adı Konumu" Style="{StaticResource GroupBoxStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="X Kaydırma (mm):" Style="{StaticResource LabelStyle}"/>
+                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
+                            <Slider x:Name="PayeeXOffsetSlider" Width="300" Style="{StaticResource SliderStyle}" Value="0"/>
+                            <TextBlock Text="{Binding ElementName=PayeeXOffsetSlider, Path=Value, StringFormat={}{0:+0.0;-0.0;0.0} mm}" 
+                                       Width="60" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="Bold"/>
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Y Kaydırma (mm):" Style="{StaticResource LabelStyle}"/>
+                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
+                            <Slider x:Name="PayeeYOffsetSlider" Width="300" Style="{StaticResource SliderStyle}" Value="0"/>
+                            <TextBlock Text="{Binding ElementName=PayeeYOffsetSlider, Path=Value, StringFormat={}{0:+0.0;-0.0;0.0} mm}" 
+                                       Width="60" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Grid>
+                </GroupBox>
+
+                <!-- Tutar Kalibrasyon -->
+                <GroupBox Header="💰 Tutar (Rakam) Konumu" Style="{StaticResource GroupBoxStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="X Kaydırma (mm):" Style="{StaticResource LabelStyle}"/>
+                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
+                            <Slider x:Name="AmountXOffsetSlider" Width="300" Style="{StaticResource SliderStyle}" Value="0"/>
+                            <TextBlock Text="{Binding ElementName=AmountXOffsetSlider, Path=Value, StringFormat={}{0:+0.0;-0.0;0.0} mm}" 
+                                       Width="60" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="Bold"/>
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Y Kaydırma (mm):" Style="{StaticResource LabelStyle}"/>
+                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
+                            <Slider x:Name="AmountYOffsetSlider" Width="300" Style="{StaticResource SliderStyle}" Value="0"/>
+                            <TextBlock Text="{Binding ElementName=AmountYOffsetSlider, Path=Value, StringFormat={}{0:+0.0;-0.0;0.0} mm}" 
+                                       Width="60" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Grid>
+                </GroupBox>
+
+                <!-- Yazıyla Tutar Kalibrasyon -->
+                <GroupBox Header="🔤 Tutar (Yazıyla) Konumu" Style="{StaticResource GroupBoxStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="X Kaydırma (mm):" Style="{StaticResource LabelStyle}"/>
+                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
+                            <Slider x:Name="AmountInWordsXOffsetSlider" Width="300" Style="{StaticResource SliderStyle}" Value="0"/>
+                            <TextBlock Text="{Binding ElementName=AmountInWordsXOffsetSlider, Path=Value, StringFormat={}{0:+0.0;-0.0;0.0} mm}" 
+                                       Width="60" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="Bold"/>
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Y Kaydırma (mm):" Style="{StaticResource LabelStyle}"/>
+                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
+                            <Slider x:Name="AmountInWordsYOffsetSlider" Width="300" Style="{StaticResource SliderStyle}" Value="0"/>
+                            <TextBlock Text="{Binding ElementName=AmountInWordsYOffsetSlider, Path=Value, StringFormat={}{0:+0.0;-0.0;0.0} mm}" 
+                                       Width="60" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Grid>
+                </GroupBox>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Alt Butonlar -->
+        <Border Grid.Row="1" Background="White" BorderBrush="#CCCCCC" BorderThickness="0,1,0,0" Padding="10">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="ResetButton" Content="🔄 Sıfırla" Width="100" Height="35" Margin="5" Click="ResetButton_Click"
+                        Background="#FF9800" Foreground="White" BorderThickness="0" FontWeight="SemiBold" Cursor="Hand"/>
+                <Button x:Name="SaveButton" Content="💾 Kaydet" Width="100" Height="35" Margin="5" Click="SaveButton_Click"
+                        Background="#4CAF50" Foreground="White" BorderThickness="0" FontWeight="SemiBold" Cursor="Hand"/>
+                <Button x:Name="CancelButton" Content="✖ İptal" Width="100" Height="35" Margin="5" Click="CancelButton_Click"
+                        Background="#757575" Foreground="White" BorderThickness="0" FontWeight="SemiBold" Cursor="Hand"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
