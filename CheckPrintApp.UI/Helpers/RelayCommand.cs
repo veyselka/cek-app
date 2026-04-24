@@ -11,62 +11,56 @@ public class RelayCommand : ICommand
     private readonly Action<object?> _execute;
     private readonly Func<object?, bool>? _canExecute;
 
-    /// <summary>
-    /// RelayCommand constructor
-    /// </summary>
-    /// <param name="execute">Komut çalıştırıldığında yapılacak aksiyon</param>
-    /// <param name="canExecute">Komutun çalıştırılıp çalıştırılamayacağını belirten fonksiyon (opsiyonel)</param>
     public RelayCommand(Action<object?> execute, Func<object?, bool>? canExecute = null)
     {
-        _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+        _execute    = execute ?? throw new ArgumentNullException(nameof(execute));
         _canExecute = canExecute;
     }
 
-    /// <summary>
-    /// Parametre almayan RelayCommand constructor
-    /// </summary>
-    /// <param name="execute">Komut çalıştırıldığında yapılacak aksiyon</param>
-    /// <param name="canExecute">Komutun çalıştırılıp çalıştırılamayacağını belirten fonksiyon (opsiyonel)</param>
     public RelayCommand(Action execute, Func<bool>? canExecute = null)
-        : this(
-            _ => execute(),
-            canExecute == null ? null : _ => canExecute())
-    {
-    }
+        : this(_ => execute(), canExecute == null ? null : _ => canExecute()) { }
 
-    /// <summary>
-    /// Komutun çalıştırılıp çalıştırılamayacağı değiştiğinde tetiklenir
-    /// </summary>
     public event EventHandler? CanExecuteChanged
     {
-        add => CommandManager.RequerySuggested += value;
+        add    => CommandManager.RequerySuggested += value;
         remove => CommandManager.RequerySuggested -= value;
     }
 
-    /// <summary>
-    /// Komutun çalıştırılıp çalıştırılamayacağını kontrol eder
-    /// </summary>
-    /// <param name="parameter">Komut parametresi</param>
-    /// <returns>Komut çalıştırılabilirse true</returns>
+    public bool CanExecute(object? parameter) => _canExecute == null || _canExecute(parameter);
+    public void Execute(object? parameter)    => _execute(parameter);
+
+    public void RaiseCanExecuteChanged() => CommandManager.InvalidateRequerySuggested();
+}
+
+/// <summary>
+/// Tip güvenli async ICommand - string gibi belirli parametre tipleri için (profil yükleme/silme vb.)
+/// </summary>
+public class RelayCommand<T> : ICommand
+{
+    private readonly Func<T?, System.Threading.Tasks.Task> _executeAsync;
+    private readonly Func<T?, bool>? _canExecute;
+
+    public RelayCommand(Func<T?, System.Threading.Tasks.Task> executeAsync, Func<T?, bool>? canExecute = null)
+    {
+        _executeAsync = executeAsync ?? throw new ArgumentNullException(nameof(executeAsync));
+        _canExecute   = canExecute;
+    }
+
+    public event EventHandler? CanExecuteChanged
+    {
+        add    => CommandManager.RequerySuggested += value;
+        remove => CommandManager.RequerySuggested -= value;
+    }
+
     public bool CanExecute(object? parameter)
     {
-        return _canExecute == null || _canExecute(parameter);
+        if (_canExecute == null) return true;
+        return parameter is T t ? _canExecute(t) : _canExecute(default);
     }
 
-    /// <summary>
-    /// Komutu çalıştırır
-    /// </summary>
-    /// <param name="parameter">Komut parametresi</param>
     public void Execute(object? parameter)
     {
-        _execute(parameter);
-    }
-
-    /// <summary>
-    /// CanExecute durumunun yeniden değerlendirilmesini tetikler
-    /// </summary>
-    public void RaiseCanExecuteChanged()
-    {
-        CommandManager.InvalidateRequerySuggested();
+        T? typed = parameter is T t ? t : default;
+        _ = _executeAsync(typed); // fire-and-forget
     }
 }

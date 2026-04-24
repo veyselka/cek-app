@@ -20,25 +20,8 @@ namespace CheckPrintApp.UI.Services;
 /// </summary>
 public class PrinterService : IPrinterService
 {
-    // Standart çek boyutları (örnek - gerçek çek boyutlarına göre ayarlanmalı)
-    private const double CheckWidthMm = 180;  // mm
-    private const double CheckHeightMm = 80;  // mm
-
-    // Çek alanlarının base koordinatları (mm cinsinden, çekin sol üst köşesinden itibaren)
-    private const double BaseDateX = 120;
-    private const double BaseDateY = 15;
-
-    private const double BasePayeeX = 20;
-    private const double BasePayeeY = 35;
-
-    private const double BaseAmountX = 120;
-    private const double BaseAmountY = 35;
-
-    private const double BaseAmountInWordsX = 20;
-    private const double BaseAmountInWordsY = 50;
-
-    private const double BaseLocationX = 50;
-    private const double BaseLocationY = 15;
+    // Çek boyutları CalibrationConfig.CheckWidthMm / CheckHeightMm üzerinden yönetilir.
+    // Base koordinatlar artık CalibrationConfig'de mutlak pozisyon olarak saklanır.
 
     /// <summary>
     /// Çek yazdırır
@@ -132,8 +115,8 @@ public class PrinterService : IPrinterService
     private FixedDocument CreateCheckDocument(CheckModel check, CalibrationConfig config, bool isTestPrint, PrintDialog printDialog)
     {
         // Sayfa boyutlarını ayarla
-        double pageWidth = UnitConverter.MmToPixel(CheckWidthMm);
-        double pageHeight = UnitConverter.MmToPixel(CheckHeightMm);
+        double pageWidth  = UnitConverter.MmToPixel(CalibrationConfig.CheckWidthMm);
+        double pageHeight = UnitConverter.MmToPixel(CalibrationConfig.CheckHeightMm);
 
         // FixedPage oluştur
         FixedPage page = new FixedPage
@@ -181,42 +164,36 @@ public class PrinterService : IPrinterService
     {
         Pen framePen = new Pen(Brushes.Blue, 1);
 
-        // Tarih çerçevesi
-        DrawRectangleWithOffset(canvas, BaseDateX, BaseDateY, 50, 10, config.DateOffsetX, config.DateOffsetY, framePen);
+        // Tarih çerçevesi — pozisyon doğrudan config'den (mutlak mm)
+        DrawFrameAt(canvas, config.DateOffsetX, config.DateOffsetY, 50, 10, framePen);
 
         // Alacaklı çerçevesi
-        DrawRectangleWithOffset(canvas, BasePayeeX, BasePayeeY, 90, 10, config.PayeeOffsetX, config.PayeeOffsetY, framePen);
+        DrawFrameAt(canvas, config.PayeeOffsetX, config.PayeeOffsetY, 90, 10, framePen);
 
         // Tutar çerçevesi
-        DrawRectangleWithOffset(canvas, BaseAmountX, BaseAmountY, 50, 10, config.AmountOffsetX, config.AmountOffsetY, framePen);
+        DrawFrameAt(canvas, config.AmountOffsetX, config.AmountOffsetY, 50, 10, framePen);
 
         // Yazıyla tutar çerçevesi
-        DrawRectangleWithOffset(canvas, BaseAmountInWordsX, BaseAmountInWordsY, 150, 10, config.AmountInWordsOffsetX, config.AmountInWordsOffsetY, framePen);
+        DrawFrameAt(canvas, config.AmountInWordsOffsetX, config.AmountInWordsOffsetY, 150, 10, framePen);
 
         // Keşide yeri çerçevesi
-        DrawRectangleWithOffset(canvas, BaseLocationX, BaseLocationY, 65, 10, config.LocationOffsetX, config.LocationOffsetY, framePen);
+        DrawFrameAt(canvas, config.LocationOffsetX, config.LocationOffsetY, 65, 10, framePen);
     }
 
     /// <summary>
-    /// Dikdörtgen çerçeve çizer
+    /// Belirtilen mutlak pozisyona (mm) dikdörtgen çerçeve çizer
     /// </summary>
-    private void DrawRectangleWithOffset(Canvas canvas, double baseX, double baseY, double widthMm, double heightMm, double offsetX, double offsetY, Pen pen)
+    private void DrawFrameAt(Canvas canvas, double xMm, double yMm, double widthMm, double heightMm, Pen pen)
     {
-        double x = UnitConverter.MmToPixel(baseX + offsetX);
-        double y = UnitConverter.MmToPixel(baseY + offsetY);
-        double width = UnitConverter.MmToPixel(widthMm);
-        double height = UnitConverter.MmToPixel(heightMm);
-
         System.Windows.Shapes.Rectangle rect = new System.Windows.Shapes.Rectangle
         {
-            Width = width,
-            Height = height,
+            Width  = UnitConverter.MmToPixel(widthMm),
+            Height = UnitConverter.MmToPixel(heightMm),
             Stroke = pen.Brush,
             StrokeThickness = pen.Thickness
         };
-
-        Canvas.SetLeft(rect, x);
-        Canvas.SetTop(rect, y);
+        Canvas.SetLeft(rect, UnitConverter.MmToPixel(xMm));
+        Canvas.SetTop(rect,  UnitConverter.MmToPixel(yMm));
         canvas.Children.Add(rect);
     }
 
@@ -229,41 +206,28 @@ public class PrinterService : IPrinterService
         double fontSize = config.FontSize;
         FontFamily fontFamily = new FontFamily(config.FontFamily);
 
-        // Tarih
-        DrawTextWithOffset(canvas, check.FormattedDate, BaseDateX, BaseDateY, config.DateOffsetX, config.DateOffsetY, fontFamily, fontSize, textBrush);
-
-        // Alacaklı
-        DrawTextWithOffset(canvas, check.PayeeName, BasePayeeX, BasePayeeY, config.PayeeOffsetX, config.PayeeOffsetY, fontFamily, fontSize, textBrush);
-
-        // Tutar
-        DrawTextWithOffset(canvas, check.FormattedAmount, BaseAmountX, BaseAmountY, config.AmountOffsetX, config.AmountOffsetY, fontFamily, fontSize, textBrush);
-
-        // Yazıyla tutar
-        DrawTextWithOffset(canvas, check.AmountInWords, BaseAmountInWordsX, BaseAmountInWordsY, config.AmountInWordsOffsetX, config.AmountInWordsOffsetY, fontFamily, fontSize, textBrush);
-
-        // Keşide yeri
-        DrawTextWithOffset(canvas, check.FormattedLocation, BaseLocationX, BaseLocationY, config.LocationOffsetX, config.LocationOffsetY, fontFamily, fontSize, textBrush);
+        // Tarih — mutlak pozisyon (mm)
+        DrawTextAt(canvas, check.FormattedDate,    config.DateOffsetX,          config.DateOffsetY,          fontFamily, fontSize, textBrush);
+        DrawTextAt(canvas, check.PayeeName,         config.PayeeOffsetX,         config.PayeeOffsetY,         fontFamily, fontSize, textBrush);
+        DrawTextAt(canvas, check.FormattedAmount,   config.AmountOffsetX,        config.AmountOffsetY,        fontFamily, fontSize, textBrush);
+        DrawTextAt(canvas, check.AmountInWords,     config.AmountInWordsOffsetX, config.AmountInWordsOffsetY, fontFamily, fontSize, textBrush);
+        DrawTextAt(canvas, check.FormattedLocation, config.LocationOffsetX,      config.LocationOffsetY,      fontFamily, fontSize, textBrush);
     }
 
     /// <summary>
-    /// Metin çizer
+    /// Belirtilen mutlak pozisyona (mm) metin çizer
     /// </summary>
-    private void DrawTextWithOffset(Canvas canvas, string text, double baseX, double baseY, double offsetX, double offsetY, FontFamily fontFamily, double fontSize, Brush brush)
+    private void DrawTextAt(Canvas canvas, string text, double xMm, double yMm, FontFamily fontFamily, double fontSize, Brush brush)
     {
-        // Kalibrasyon offset'lerini uygula
-        double x = UnitConverter.MmToPixel(baseX + offsetX);
-        double y = UnitConverter.MmToPixel(baseY + offsetY);
-
         TextBlock textBlock = new TextBlock
         {
-            Text = text,
+            Text       = text,
             FontFamily = fontFamily,
-            FontSize = fontSize,
+            FontSize   = fontSize,
             Foreground = brush
         };
-
-        Canvas.SetLeft(textBlock, x);
-        Canvas.SetTop(textBlock, y);
+        Canvas.SetLeft(textBlock, UnitConverter.MmToPixel(xMm));
+        Canvas.SetTop(textBlock,  UnitConverter.MmToPixel(yMm));
         canvas.Children.Add(textBlock);
     }
 }

@@ -2,7 +2,9 @@ using CheckPrintApp.Core.Helpers;
 using CheckPrintApp.Core.Models;
 using CheckPrintApp.Core.Services;
 using CheckPrintApp.UI.Helpers;
+using CheckPrintApp.UI.Views;
 using System;
+using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Input;
 using Serilog;
@@ -23,6 +25,10 @@ public class MainViewModel : ViewModelBase
     private bool _isTestPrint;
     private string _validationError = string.Empty;
 
+    // Banka profilleri
+    private ObservableCollection<string> _bankProfiles = new();
+    private string? _selectedBankProfile;
+
     public MainViewModel(
         INumberToTextConverter numberToTextConverter,
         ISettingsService settingsService,
@@ -36,9 +42,12 @@ public class MainViewModel : ViewModelBase
         _calibrationConfig = new CalibrationConfig();
 
         // Commands
-        PrintCommand = new RelayCommand(async () => await ExecutePrintAsync(), CanExecutePrint);
-        SaveSettingsCommand = new RelayCommand(async () => await ExecuteSaveSettingsAsync());
-        ResetCalibrationCommand = new RelayCommand(ExecuteResetCalibration);
+        PrintCommand              = new RelayCommand(async () => await ExecutePrintAsync(), CanExecutePrint);
+        SaveSettingsCommand       = new RelayCommand(async () => await ExecuteSaveSettingsAsync());
+        ResetCalibrationCommand   = new RelayCommand(ExecuteResetCalibration);
+        SaveBankProfileCommand    = new RelayCommand(async () => await ExecuteSaveBankProfileAsync());
+        LoadBankProfileCommand    = new RelayCommand<string>(async (name) => await ExecuteLoadBankProfileAsync(name));
+        DeleteBankProfileCommand  = new RelayCommand<string>(async (name) => await ExecuteDeleteBankProfileAsync(name));
 
         // Ayarları yükle
         LoadSettingsAsync();
@@ -195,12 +204,13 @@ public class MainViewModel : ViewModelBase
         }
     }
 
-    public string DateOffsetXText => $"{DateOffsetX:+0.0;-0.0;0.0} mm";
-    public string DateOffsetYText => $"{DateOffsetY:+0.0;-0.0;0.0} mm";
+    public string DateOffsetXText => $"{DateOffsetX:0.0} mm";
+    public string DateOffsetYText => $"{DateOffsetY:0.0} mm";
     
-    // Önizleme için pixel değerleri (1mm = 3pixel önizlemede)
-    public double DateOffsetXPreview => DateOffsetX * 3.0;
-    public double DateOffsetYPreview => DateOffsetY * 3.0;
+    // Önizleme için pixel değerleri (Canvas 600px = 180mm çek genişliği → oran: 600/180 ≈ 3.33 px/mm)
+    private const double PreviewScale = 600.0 / CalibrationConfig.CheckWidthMm; // ~3.33
+    public double DateOffsetXPreview => DateOffsetX * PreviewScale;
+    public double DateOffsetYPreview => DateOffsetY * PreviewScale;
 
     #endregion
 
@@ -236,11 +246,11 @@ public class MainViewModel : ViewModelBase
         }
     }
 
-    public string PayeeOffsetXText => $"{PayeeOffsetX:+0.0;-0.0;0.0} mm";
-    public string PayeeOffsetYText => $"{PayeeOffsetY:+0.0;-0.0;0.0} mm";
+    public string PayeeOffsetXText => $"{PayeeOffsetX:0.0} mm";
+    public string PayeeOffsetYText => $"{PayeeOffsetY:0.0} mm";
     
-    public double PayeeOffsetXPreview => PayeeOffsetX * 3.0;
-    public double PayeeOffsetYPreview => PayeeOffsetY * 3.0;
+    public double PayeeOffsetXPreview => PayeeOffsetX * PreviewScale;
+    public double PayeeOffsetYPreview => PayeeOffsetY * PreviewScale;
 
     #endregion
 
@@ -276,11 +286,11 @@ public class MainViewModel : ViewModelBase
         }
     }
 
-    public string AmountOffsetXText => $"{AmountOffsetX:+0.0;-0.0;0.0} mm";
-    public string AmountOffsetYText => $"{AmountOffsetY:+0.0;-0.0;0.0} mm";
+    public string AmountOffsetXText => $"{AmountOffsetX:0.0} mm";
+    public string AmountOffsetYText => $"{AmountOffsetY:0.0} mm";
     
-    public double AmountOffsetXPreview => AmountOffsetX * 3.0;
-    public double AmountOffsetYPreview => AmountOffsetY * 3.0;
+    public double AmountOffsetXPreview => AmountOffsetX * PreviewScale;
+    public double AmountOffsetYPreview => AmountOffsetY * PreviewScale;
 
     #endregion
 
@@ -316,11 +326,11 @@ public class MainViewModel : ViewModelBase
         }
     }
 
-    public string AmountInWordsOffsetXText => $"{AmountInWordsOffsetX:+0.0;-0.0;0.0} mm";
-    public string AmountInWordsOffsetYText => $"{AmountInWordsOffsetY:+0.0;-0.0;0.0} mm";
+    public string AmountInWordsOffsetXText => $"{AmountInWordsOffsetX:0.0} mm";
+    public string AmountInWordsOffsetYText => $"{AmountInWordsOffsetY:0.0} mm";
     
-    public double AmountInWordsOffsetXPreview => AmountInWordsOffsetX * 3.0;
-    public double AmountInWordsOffsetYPreview => AmountInWordsOffsetY * 3.0;
+    public double AmountInWordsOffsetXPreview => AmountInWordsOffsetX * PreviewScale;
+    public double AmountInWordsOffsetYPreview => AmountInWordsOffsetY * PreviewScale;
 
     #endregion
 
@@ -356,11 +366,11 @@ public class MainViewModel : ViewModelBase
         }
     }
 
-    public string LocationOffsetXText => $"{LocationOffsetX:+0.0;-0.0;0.0} mm";
-    public string LocationOffsetYText => $"{LocationOffsetY:+0.0;-0.0;0.0} mm";
+    public string LocationOffsetXText => $"{LocationOffsetX:0.0} mm";
+    public string LocationOffsetYText => $"{LocationOffsetY:0.0} mm";
     
-    public double LocationOffsetXPreview => LocationOffsetX * 3.0;
-    public double LocationOffsetYPreview => LocationOffsetY * 3.0;
+    public double LocationOffsetXPreview => LocationOffsetX * PreviewScale;
+    public double LocationOffsetYPreview => LocationOffsetY * PreviewScale;
 
     #endregion
 
@@ -391,9 +401,34 @@ public class MainViewModel : ViewModelBase
 
     #region Commands
 
-    public ICommand PrintCommand { get; }
-    public ICommand SaveSettingsCommand { get; }
-    public ICommand ResetCalibrationCommand { get; }
+    public ICommand PrintCommand             { get; }
+    public ICommand SaveSettingsCommand      { get; }
+    public ICommand ResetCalibrationCommand  { get; }
+    public ICommand SaveBankProfileCommand   { get; }
+    public ICommand LoadBankProfileCommand   { get; }
+    public ICommand DeleteBankProfileCommand { get; }
+
+    #endregion
+
+    #region BankProfile Properties
+
+    /// <summary>
+    /// Kayıtlı banka profil adları listesi (UI'da görünür)
+    /// </summary>
+    public ObservableCollection<string> BankProfiles
+    {
+        get => _bankProfiles;
+        private set => SetProperty(ref _bankProfiles, value);
+    }
+
+    /// <summary>
+    /// Şu an seçili profil adı (yüklendikten sonra highlight için)
+    /// </summary>
+    public string? SelectedBankProfile
+    {
+        get => _selectedBankProfile;
+        set => SetProperty(ref _selectedBankProfile, value);
+    }
 
     #endregion
 
@@ -475,39 +510,13 @@ public class MainViewModel : ViewModelBase
 
             // Varsayılan keşide yerini ayarla
             if (!string.IsNullOrEmpty(settings.General?.DefaultLocation))
-            {
                 Location = settings.General.DefaultLocation;
-            }
 
-            // Son kullanılan çek bilgilerini yükle (opsiyonel)
-            if (settings.LastCheck != null)
-            {
-                // İstersen son çek bilgilerini yükleyebilirsin
-                // CheckDate = settings.LastCheck.Date;
-                // Amount = settings.LastCheck.Amount;
-            }
+            // Banka profillerini yükle
+            RefreshBankProfileList(settings.BankProfiles);
 
             // Tüm offset property'lerini güncelle
-            OnPropertyChanged(nameof(DateOffsetX));
-            OnPropertyChanged(nameof(DateOffsetY));
-            OnPropertyChanged(nameof(DateOffsetXPreview));
-            OnPropertyChanged(nameof(DateOffsetYPreview));
-            OnPropertyChanged(nameof(PayeeOffsetX));
-            OnPropertyChanged(nameof(PayeeOffsetY));
-            OnPropertyChanged(nameof(PayeeOffsetXPreview));
-            OnPropertyChanged(nameof(PayeeOffsetYPreview));
-            OnPropertyChanged(nameof(AmountOffsetX));
-            OnPropertyChanged(nameof(AmountOffsetY));
-            OnPropertyChanged(nameof(AmountOffsetXPreview));
-            OnPropertyChanged(nameof(AmountOffsetYPreview));
-            OnPropertyChanged(nameof(AmountInWordsOffsetX));
-            OnPropertyChanged(nameof(AmountInWordsOffsetY));
-            OnPropertyChanged(nameof(AmountInWordsOffsetXPreview));
-            OnPropertyChanged(nameof(AmountInWordsOffsetYPreview));
-            OnPropertyChanged(nameof(LocationOffsetX));
-            OnPropertyChanged(nameof(LocationOffsetY));
-            OnPropertyChanged(nameof(LocationOffsetXPreview));
-            OnPropertyChanged(nameof(LocationOffsetYPreview));
+            NotifyAllCalibrationProperties();
         }
         catch (Exception ex)
         {
@@ -563,23 +572,22 @@ public class MainViewModel : ViewModelBase
         try
         {
             Log.Information("Ayarlar kaydediliyor...");
-            
-            var settings = new AppSettings
+
+            // Mevcut ayarları yükle (profiller kaybolmasın)
+            var settings = await _settingsService.LoadSettingsAsync();
+            settings.Version     = "1.0.0";
+            settings.Calibration = CalibrationConfig;
+            settings.General     = new GeneralSettings
             {
-                Version = "1.0.0",
-                Calibration = CalibrationConfig,
-                General = new GeneralSettings
-                {
-                    DefaultLocation = Location,
-                    AutoUpperCase = CalibrationConfig.AutoUpperCase,
-                    FontFamily = CalibrationConfig.FontFamily,
-                    FontSize = CalibrationConfig.FontSize
-                }
+                DefaultLocation = Location,
+                AutoUpperCase   = CalibrationConfig.AutoUpperCase,
+                FontFamily      = CalibrationConfig.FontFamily,
+                FontSize        = CalibrationConfig.FontSize
             };
 
             await _settingsService.SaveSettingsAsync(settings);
             Log.Information("Ayarlar başarıyla kaydedildi");
-            MessageBox.Show("Ayarlar başarıyla kaydedildi!", "Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Genel ayarlar başarıyla kaydedildi!", "Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
         {
@@ -617,50 +625,148 @@ public class MainViewModel : ViewModelBase
     private void ExecuteResetCalibration()
     {
         CalibrationConfig.Reset();
-        
-        // Tüm UI binding'lerini güncelle
-        OnPropertyChanged(nameof(DateOffsetX));
-        OnPropertyChanged(nameof(DateOffsetY));
-        OnPropertyChanged(nameof(DateOffsetXPreview));
-        OnPropertyChanged(nameof(DateOffsetYPreview));
-        OnPropertyChanged(nameof(PayeeOffsetX));
-        OnPropertyChanged(nameof(PayeeOffsetY));
-        OnPropertyChanged(nameof(PayeeOffsetXPreview));
-        OnPropertyChanged(nameof(PayeeOffsetYPreview));
-        OnPropertyChanged(nameof(AmountOffsetX));
-        OnPropertyChanged(nameof(AmountOffsetY));
-        OnPropertyChanged(nameof(AmountOffsetXPreview));
-        OnPropertyChanged(nameof(AmountOffsetYPreview));
-        OnPropertyChanged(nameof(AmountInWordsOffsetX));
-        OnPropertyChanged(nameof(AmountInWordsOffsetY));
-        OnPropertyChanged(nameof(AmountInWordsOffsetXPreview));
-        OnPropertyChanged(nameof(AmountInWordsOffsetYPreview));
-        OnPropertyChanged(nameof(LocationOffsetX));
-        OnPropertyChanged(nameof(LocationOffsetY));
-        OnPropertyChanged(nameof(LocationOffsetXPreview));
-        OnPropertyChanged(nameof(LocationOffsetYPreview));
-        
+        NotifyAllCalibrationProperties();
         MessageBox.Show("Tüm kalibrasyon ayarları varsayılan değerlere döndürüldü.", "Bilgi", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
-    /// <summary>
-    /// Kalibrasyon değişikliklerini bildirir (UI güncellemesi için)
-    /// </summary>
     public void NotifyCalibrationChanged()
     {
-        // Tüm kalibrasyon property'lerini güncelle
-        OnPropertyChanged(nameof(DateOffsetX));
-        OnPropertyChanged(nameof(DateOffsetY));
-        OnPropertyChanged(nameof(PayeeOffsetX));
-        OnPropertyChanged(nameof(PayeeOffsetY));
-        OnPropertyChanged(nameof(AmountOffsetX));
-        OnPropertyChanged(nameof(AmountOffsetY));
-        OnPropertyChanged(nameof(AmountInWordsOffsetX));
-        OnPropertyChanged(nameof(AmountInWordsOffsetY));
-        OnPropertyChanged(nameof(LocationOffsetX));
-        OnPropertyChanged(nameof(LocationOffsetY));
-        
+        NotifyAllCalibrationProperties();
         Log.Information("Kalibrasyon değişiklikleri UI'a bildirildi");
+    }
+
+    // ─── BANKA PROFILİ METODLARI ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// "Profil Olarak Kaydet" dialogını açar, isim alır, kaydeder.
+    /// </summary>
+    private async System.Threading.Tasks.Task ExecuteSaveBankProfileAsync()
+    {
+        try
+        {
+            var dialog = new SaveProfileDialog
+            {
+                Owner             = Application.Current.MainWindow,
+                ExistingProfiles  = BankProfiles
+            };
+
+            if (dialog.ShowDialog() != true) return;
+
+            string profileName = dialog.ProfileName;
+            await _settingsService.SaveBankProfileAsync(profileName, CalibrationConfig);
+
+            // Listeyi güncelle
+            if (!BankProfiles.Contains(profileName))
+            {
+                BankProfiles.Add(profileName);
+                // WPF Visual Tree güncellemesinin (render) tamamlanması için çok kısa bir süre bekle.
+                // Aksi takdirde, RelativeSource binding'i render anında çalışırken NullReferenceException patlatabiliyor.
+                await System.Threading.Tasks.Task.Delay(50);
+            }
+
+            SelectedBankProfile = profileName;
+
+            Log.Information("Banka profili kaydedildi: {ProfileName}", profileName);
+            MessageBox.Show($"✅ '{profileName}' profili kaydedildi!", "Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Profil kaydedilirken hata");
+            MessageBox.Show($"Profil kaydedilemedi: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// Seçilen banka profilini yükler (kalibrasyon ayarlarını uygular).
+    /// </summary>
+    private async System.Threading.Tasks.Task ExecuteLoadBankProfileAsync(string? profileName)
+    {
+        if (string.IsNullOrEmpty(profileName)) return;
+
+        try
+        {
+            var profiles = await _settingsService.GetBankProfilesAsync();
+
+            if (!profiles.TryGetValue(profileName, out var config))
+            {
+                MessageBox.Show($"'{profileName}' profili bulunamadı.", "Hata", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            CalibrationConfig   = config.Clone();
+            SelectedBankProfile = profileName;
+            NotifyAllCalibrationProperties();
+
+            Log.Information("Banka profili yüklendi: {ProfileName}", profileName);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Profil yüklenirken hata");
+            MessageBox.Show($"Profil yüklenemedi: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// Seçilen banka profilini siler.
+    /// </summary>
+    private async System.Threading.Tasks.Task ExecuteDeleteBankProfileAsync(string? profileName)
+    {
+        if (string.IsNullOrEmpty(profileName)) return;
+
+        var confirm = MessageBox.Show(
+            $"'{profileName}' profili silinecek. Emin misiniz?",
+            "Profil Sil",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (confirm != MessageBoxResult.Yes) return;
+
+        try
+        {
+            await _settingsService.DeleteBankProfileAsync(profileName);
+            BankProfiles.Remove(profileName);
+
+            if (SelectedBankProfile == profileName)
+                SelectedBankProfile = null;
+
+            Log.Information("Banka profili silindi: {ProfileName}", profileName);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Profil silinirken hata");
+            MessageBox.Show($"Profil silinemedi: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    // ─── YARDIMCI METODLAR ──────────────────────────────────────────────────────
+
+    /// <summary>Tüm kalibrasyon property değişikliklerini UI'a bildirir.</summary>
+    private void NotifyAllCalibrationProperties()
+    {
+        OnPropertyChanged(nameof(DateOffsetX));             OnPropertyChanged(nameof(DateOffsetXText));
+        OnPropertyChanged(nameof(DateOffsetY));             OnPropertyChanged(nameof(DateOffsetYText));
+        OnPropertyChanged(nameof(DateOffsetXPreview));      OnPropertyChanged(nameof(DateOffsetYPreview));
+        OnPropertyChanged(nameof(PayeeOffsetX));            OnPropertyChanged(nameof(PayeeOffsetXText));
+        OnPropertyChanged(nameof(PayeeOffsetY));            OnPropertyChanged(nameof(PayeeOffsetYText));
+        OnPropertyChanged(nameof(PayeeOffsetXPreview));     OnPropertyChanged(nameof(PayeeOffsetYPreview));
+        OnPropertyChanged(nameof(AmountOffsetX));           OnPropertyChanged(nameof(AmountOffsetXText));
+        OnPropertyChanged(nameof(AmountOffsetY));           OnPropertyChanged(nameof(AmountOffsetYText));
+        OnPropertyChanged(nameof(AmountOffsetXPreview));    OnPropertyChanged(nameof(AmountOffsetYPreview));
+        OnPropertyChanged(nameof(AmountInWordsOffsetX));    OnPropertyChanged(nameof(AmountInWordsOffsetXText));
+        OnPropertyChanged(nameof(AmountInWordsOffsetY));    OnPropertyChanged(nameof(AmountInWordsOffsetYText));
+        OnPropertyChanged(nameof(AmountInWordsOffsetXPreview)); OnPropertyChanged(nameof(AmountInWordsOffsetYPreview));
+        OnPropertyChanged(nameof(LocationOffsetX));         OnPropertyChanged(nameof(LocationOffsetXText));
+        OnPropertyChanged(nameof(LocationOffsetY));         OnPropertyChanged(nameof(LocationOffsetYText));
+        OnPropertyChanged(nameof(LocationOffsetXPreview));  OnPropertyChanged(nameof(LocationOffsetYPreview));
+    }
+
+    /// <summary>Profil listesini Dictionary'den ObservableCollection'a dönüştürür.</summary>
+    private void RefreshBankProfileList(System.Collections.Generic.Dictionary<string, CheckPrintApp.Core.Models.CalibrationConfig>? profiles)
+    {
+        BankProfiles.Clear();
+        if (profiles == null) return;
+        foreach (var key in profiles.Keys)
+            BankProfiles.Add(key);
     }
 
     #endregion

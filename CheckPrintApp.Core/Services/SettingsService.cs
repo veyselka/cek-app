@@ -1,5 +1,6 @@
 using CheckPrintApp.Core.Models;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -7,13 +8,13 @@ using System.Threading.Tasks;
 namespace CheckPrintApp.Core.Services;
 
 /// <summary>
-/// Uygulama ayarlarını yöneten servis implementasyonu
-/// JSON dosyası kullanarak ayarları kalıcı olarak saklar
+/// Uygulama ayarlarını yöneten servis implementasyonu.
+/// JSON dosyası kullanarak ayarları ve banka profillerini kalıcı olarak saklar.
 /// </summary>
 public class SettingsService : ISettingsService
 {
     private const string SettingsFileName = "settings.json";
-    private const string AppFolderName = "CheckPrintMaster";
+    private const string AppFolderName    = "CheckPrintMaster";
 
     private readonly JsonSerializerOptions _jsonOptions;
 
@@ -21,54 +22,41 @@ public class SettingsService : ISettingsService
     {
         _jsonOptions = new JsonSerializerOptions
         {
-            WriteIndented = true, // Okunabilir JSON formatı
+            WriteIndented               = true,
             PropertyNameCaseInsensitive = true
         };
     }
 
-    /// <summary>
-    /// Ayarları dosyadan yükler
-    /// </summary>
+    // ─── TEMEL AYAR İŞLEMLERİ ───────────────────────────────────────────────
+
     public async Task<AppSettings> LoadSettingsAsync()
     {
         try
         {
             string filePath = GetSettingsFilePath();
-
             if (!File.Exists(filePath))
-            {
-                // Dosya yoksa varsayılan ayarları döndür
                 return GetDefaultSettings();
-            }
 
-            string json = await File.ReadAllTextAsync(filePath);
-            var settings = JsonSerializer.Deserialize<AppSettings>(json, _jsonOptions);
-
+            string json     = await File.ReadAllTextAsync(filePath);
+            var    settings = JsonSerializer.Deserialize<AppSettings>(json, _jsonOptions);
             return settings ?? GetDefaultSettings();
         }
         catch (Exception ex)
         {
-            // Hata durumunda varsayılan ayarları döndür
             Console.WriteLine($"Ayarlar yüklenirken hata: {ex.Message}");
             return GetDefaultSettings();
         }
     }
 
-    /// <summary>
-    /// Ayarları dosyaya kaydeder
-    /// </summary>
     public async Task SaveSettingsAsync(AppSettings settings)
     {
         try
         {
-            string filePath = GetSettingsFilePath();
+            string filePath  = GetSettingsFilePath();
             string directory = Path.GetDirectoryName(filePath)!;
 
-            // Klasör yoksa oluştur
             if (!Directory.Exists(directory))
-            {
                 Directory.CreateDirectory(directory);
-            }
 
             string json = JsonSerializer.Serialize(settings, _jsonOptions);
             await File.WriteAllTextAsync(filePath, json);
@@ -79,49 +67,67 @@ public class SettingsService : ISettingsService
         }
     }
 
-    /// <summary>
-    /// Varsayılan ayarları döndürür
-    /// </summary>
-    public AppSettings GetDefaultSettings()
+    public AppSettings GetDefaultSettings() => new AppSettings
     {
-        return new AppSettings
+        Version = "1.0.0",
+        Calibration = new CalibrationConfig
         {
-            Version = "1.0.0",
-            Calibration = new CalibrationConfig
-            {
-                DefaultLocation = "ELAZIĞ",
-                FontFamily = "Arial",
-                FontSize = 12,
-                AutoUpperCase = true
-            },
-            General = new GeneralSettings
-            {
-                DefaultLocation = "ELAZIĞ",
-                AutoUpperCase = true,
-                FontFamily = "Arial",
-                FontSize = 12
-            },
-            LastCheck = null
-        };
-    }
+            DefaultLocation = "ELAZIĞ",
+            FontFamily      = "Arial",
+            FontSize        = 12,
+            AutoUpperCase   = true
+        },
+        General = new GeneralSettings
+        {
+            DefaultLocation = "ELAZIĞ",
+            AutoUpperCase   = true,
+            FontFamily      = "Arial",
+            FontSize        = 12
+        },
+        LastCheck    = null,
+        BankProfiles = new Dictionary<string, CalibrationConfig>()
+    };
 
-    /// <summary>
-    /// Ayarlar dosyasının yolunu döndürür
-    /// </summary>
     public string GetSettingsFilePath()
     {
-        // Önce portable mod kontrolü (exe ile aynı klasörde config klasörü var mı?)
-        string exeDirectory = AppDomain.CurrentDomain.BaseDirectory;
-        string portableConfigPath = Path.Combine(exeDirectory, "config", SettingsFileName);
+        // Portable mod: exe klasöründe "config" klasörü varsa onu kullan
+        string exeDirectory      = AppDomain.CurrentDomain.BaseDirectory;
+        string portableConfigDir = Path.Combine(exeDirectory, "config");
 
-        if (Directory.Exists(Path.Combine(exeDirectory, "config")))
-        {
-            return portableConfigPath;
-        }
+        if (Directory.Exists(portableConfigDir))
+            return Path.Combine(portableConfigDir, SettingsFileName);
 
-        // Portable değilse AppData/Roaming kullan
+        // Değilse AppData/Roaming
         string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        string appFolder = Path.Combine(appDataPath, AppFolderName);
-        return Path.Combine(appFolder, SettingsFileName);
+        return Path.Combine(appDataPath, AppFolderName, SettingsFileName);
+    }
+
+    // ─── BANKA PROFİLİ YÖNETİMİ ────────────────────────────────────────────
+
+    public async Task SaveBankProfileAsync(string profileName, CalibrationConfig config)
+    {
+        if (string.IsNullOrWhiteSpace(profileName))
+            throw new ArgumentException("Profil adı boş olamaz.", nameof(profileName));
+
+        var settings = await LoadSettingsAsync();
+        settings.BankProfiles ??= new Dictionary<string, CalibrationConfig>();
+        settings.BankProfiles[profileName.Trim()] = config.Clone();
+        await SaveSettingsAsync(settings);
+    }
+
+    public async Task DeleteBankProfileAsync(string profileName)
+    {
+        var settings = await LoadSettingsAsync();
+        if (settings.BankProfiles?.ContainsKey(profileName) == true)
+        {
+            settings.BankProfiles.Remove(profileName);
+            await SaveSettingsAsync(settings);
+        }
+    }
+
+    public async Task<Dictionary<string, CalibrationConfig>> GetBankProfilesAsync()
+    {
+        var settings = await LoadSettingsAsync();
+        return settings.BankProfiles ?? new Dictionary<string, CalibrationConfig>();
     }
 }
